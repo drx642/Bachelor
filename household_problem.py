@@ -82,6 +82,6 @@ def solve_hh_backwards(par,z_trans,w_N,r,i,d_N,d_L,tau,Q,P,p_N,p_L,vbeg_a_plus,v
 
         # b. expectation step
         v_a = c[i_fix,:,:]**(-par.sigma) #v funktion FOC wrt. c_hat?
-        vbeg_a[i_fix] = (1+r)*z_trans[i_fix]@v_a 
-        c[i_fix,:,:] = c[i_fix,:,:] + par.c_bar*(p_N/P)
+        vbeg_a[i_fix] = (1+r)*z_trans[i_fix]@v_a #ganger transitionsmatrix og rente på valg
+        c[i_fix,:,:] = c[i_fix,:,:] + par.c_bar*(p_N/P) #samlet forbrug er valgte ekstraforbrug plus nødvendige forbrug
         

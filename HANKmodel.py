@@ -83,7 +83,10 @@ class HANKModelClass(EconModelClass,GEModelClass):
             'Q_check',
             'P',
             'Z_N',
-            'Z_L']
+            'Z_L',
+            'tau_pm',
+            'tax_rate_base',
+            'pm_f']
 
         # e. functions
         self.solve_hh_backwards = household_problem.solve_hh_backwards
@@ -130,9 +133,11 @@ class HANKModelClass(EconModelClass,GEModelClass):
         par.phi                = 1.5                    # Taylor rule coefficient on inflation
         par.phi_y              = 0.0                    # Taylor rule coefficient on output
         par.epsilon            = 0.454                  # Taylor rule inflation weights
+
+        par.tax_rate_base       =0.00                    #basic tax rate
               
         par.G_target_ss        = 0.0                    # government spending
-        par.B_target_ss        = 5.6                    # bond supply
+        par.B_target_ss        = 5.6                    # bond supply 
      
         # f. grids               
         par.a_min              = 0.0                    # maximum point in grid for a
@@ -167,6 +172,7 @@ class HANKModelClass(EconModelClass,GEModelClass):
         par.tol_solve          = 1e-11                  # tolerance when solving
         par.tol_simulate       = 1e-11                  # tolerance when simulating
         par.tol_broyden        = 1e-10                  # tolerance when solving eq. system
+
         
     def allocate(self):
         """ allocate model """

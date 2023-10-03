@@ -66,6 +66,8 @@ def block_pre(par,ini,ss,path,ncols=1):
         ELL_hh = path.ELL_hh[ncol,:] #not defined/used anywhere, OBS
         N_hh = path.N_hh[ncol,:] #Labour households
         P_hh = path.P_hh[ncol,:] #not defined/used anywgere, OBS
+        tau_pm = path.tau_pm[ncol,:] #tax rate
+        pm_f = path.pm_f[ncol,:] #tax rate
 
         #################
         # implied paths #
@@ -92,7 +94,19 @@ def block_pre(par,ini,ss,path,ncols=1):
         #    p_L[t] = Q[t]*p_N[t]
         
                 
-        # back out prices option 3 - inflation is just relative to steady state         
+        # back out prices option 3 - inflation is just relative to steady state
+        tau_pm[:]=0
+        tau_pm[2]=par.tax_rate_base*pm_N[2]
+        tau_pm[3]=par.tax_rate_base*pm_N[3]
+        pm_f[:]=pm_N-tau_pm
+        #if np.any(pm_N==0.01*ss.Q):
+        #    tau_pm[2]=par.tax_rate_base*pm_N[2]
+        #else:
+        #    tau_pm[2]=0
+        #elif pm_N==0.01*ss.Q:
+        #    tau_pm[:]=par.tax_rate_base*pm_N
+        #else:
+        #    tau_pm[:]=0  
         p_N[:] = (1+pi_N)*ss.p_N #price equals ss price times inflation (same for necessity and luxury)
         p_L[:] = (1+pi_L)*ss.p_L # - What goes wrong here? Model still runs fine, but not as it should
         #p_L[:] = Q*p_N
@@ -109,10 +123,10 @@ def block_pre(par,ini,ss,path,ncols=1):
         P[:] = (par.alpha_hh*p_N**(1-par.gamma_hh)+(1-par.alpha_hh)*p_L**(1-par.gamma_hh))**(1/(1-par.gamma_hh)) # price index, appendix A5, firms block, eq 1, OBS not defined exactly the same?
         #P[:] = ((1+pi_N)**(1-par.gamma_hh)*par.alpha_hh+(1-par.alpha_hh)*Q**(1-par.gamma_hh))**(1/(1-par.gamma_hh)) # price index
         w_L[:] = (1/Q)*w_N # real wage rate, reverse of w_N definition (section 2.2)
-        pm_L[:] = (1/Q)*pm_N # real raw material price, reverse of pm_N definition (section 2.2)
+        pm_L[:] = (1/Q)*(pm_N-tau_pm) # real raw material price, reverse of pm_N definition (section 2.2)
 
         # production
-        mc_N[:] = ((1-par.alpha_N)*(w_N/Z_N)**(1-par.gamma_N)+par.alpha_N*pm_N**(1-par.gamma_N))**(1/(1-par.gamma_N)) # marginal cost sector N, Appendix A5, firm block eq 4 (2.18)
+        mc_N[:] = ((1-par.alpha_N)*(w_N/Z_N)**(1-par.gamma_N)+par.alpha_N*(pm_N-tau_pm)**(1-par.gamma_N))**(1/(1-par.gamma_N)) # marginal cost sector N, Appendix A5, firm block eq 4 (2.18)
         mc_L[:] = ((1-par.alpha_L)*(w_L/Z_L)**(1-par.gamma_L)+par.alpha_L*pm_L**(1-par.gamma_L))**(1/(1-par.gamma_L)) # marginal cost sector L, Appendix A5, firm block eq 4 (2.18)
 
         Y_N[:] = N_N/((1-par.alpha_N)*(w_N/mc_N)**(-par.gamma_N)*Z_N**(par.gamma_N-1)) #Appendix A5, firm block, eq 6 (2.16), reverse definition
@@ -124,10 +138,10 @@ def block_pre(par,ini,ss,path,ncols=1):
         Y[:] = (Y_N+Q*Y_L)*(p_N/P) # overall production, appendix A5, firm block, eq 9, p_N is a 1 in paper OBS
         Y_star[:] = (ss.Y_N+Q*ss.Y_L)*(p_N/P) # potential production, ss version of above
 
-        M_N[:] = par.alpha_N*(pm_N/mc_N)**(-par.gamma_N)*Y_N # M_N demand, Appendix A5, firm block, eq 7 (2.17)
+        M_N[:] = par.alpha_N*((pm_N-tau_pm)/mc_N)**(-par.gamma_N)*Y_N # M_N demand, Appendix A5, firm block, eq 7 (2.17)
         M_L[:] = par.alpha_L*(pm_L/mc_L)**(-par.gamma_L)*Y_L # M_L demand, Appendix A5, firm block, eq 7 (2.17)
 
-        d_N[:] = Y_N-w_N*N_N-pm_N*M_N-adjcost_N # dividends sector N, Appendix A5, firm block, eq 8 (2.21)
+        d_N[:] = Y_N-w_N*N_N-(pm_N-tau_pm)*M_N-adjcost_N # dividends sector N, Appendix A5, firm block, eq 8 (2.21)
         d_L[:] = Y_L-w_L*N_L-pm_L*M_L-adjcost_L # dividends sector L, Appendix A5, firm block, eq 8 (2.21)
 
         # b. monetary policy
@@ -138,12 +152,12 @@ def block_pre(par,ini,ss,path,ncols=1):
 
         # c. government
         B[:] = ss.B #a constant amount of bonds, SS value
-        tau[:] = r*B + par.chi #tax rate is cost of having sold the bonds (r*B) and the "survival payment" (chi), (section 2.3)
-        G[:] = tau-r*B - par.chi #Government spendig equals whats left of the tax income after above payments, (2.24 rewritten)
+        tau[:] = r*B + par.chi+tau_pm*(M_N+M_L) #tax rate is cost of having sold the bonds (r*B) and the "survival payment" (chi), (section 2.3)
+        G[:] = tau-r*B - par.chi #Government spending equals whats left of the tax income after above payments, (2.24 rewritten)
         
         # d. aggregates
         A[:] = ss.B #aggregate savings must always equal the ss value of bonds (as constant) (2.25)
-        C_N[:] = Y_N-adjcost_N-pm_N*M_N #agg. N consumption equals production minus expenses of production/price adj, Appendix A5, firm block, eq 11 (2.27) why expenses included here? OBS
+        C_N[:] = Y_N-adjcost_N-(pm_N-tau_pm)*M_N #agg. N consumption equals production minus expenses of production/price adj, Appendix A5, firm block, eq 11 (2.27) why expenses included here? OBS
         C_L[:] = Y_L-adjcost_L-pm_L*M_L #agg. L consumption equals production minus expenses of production/price adj, Appendix A5, firm block, eq 11 (2.28) why expenses included here? OBS
         C[:] = (C_N + Q*C_L)*(p_N/P) #agg. consumption, Appendix A5, firm block, eq 9, seems like it is the same as for Y, OBS
         N[:] = N_N + N_L #agg. labour, appendix A5, firm block, eq 10
@@ -209,6 +223,7 @@ def block_post(par,ini,ss,path,ncols=1):
         N_hh = path.N_hh[ncol,:]
         p_N = path.p_N[ncol,:]
         P_hh = path.P_hh[ncol,:]
+        tau_pm = path.tau_pm[ncol,:]
 
         #################
         # check targets #
