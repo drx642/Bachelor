@@ -86,7 +86,8 @@ class HANKModelClass(EconModelClass,GEModelClass):
             'Z_L',
             'tau_pm',
             'tax_rate_base',
-            'pm_f']
+            'pm_f',
+            'M_test']
 
         # e. functions
         self.solve_hh_backwards = household_problem.solve_hh_backwards

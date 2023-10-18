@@ -63,11 +63,12 @@ def block_pre(par,ini,ss,path,ncols=1):
         C_HAT_N_hh = path.C_HAT_N_hh[ncol,:] #net of subsistence consumption for necessity goods, households
         C_N_hh = path.C_N_hh[ncol,:] #consumption of necessity goods, households
         C_L_hh = path.C_L_hh[ncol,:] #consumption of luxury goods, households
-        ELL_hh = path.ELL_hh[ncol,:] #not defined/used anywhere, OBS
+        ELL_hh = path.ELL_hh[ncol,:] #Labor for households
         N_hh = path.N_hh[ncol,:] #Labour households
-        P_hh = path.P_hh[ncol,:] #not defined/used anywgere, OBS
+        P_hh = path.P_hh[ncol,:] #IPI for households
         tau_pm = path.tau_pm[ncol,:] #tax rate
         pm_f = path.pm_f[ncol,:] #tax rate
+        M_test = path.M_test[ncol,:]
 
         #################
         # implied paths #
@@ -96,8 +97,8 @@ def block_pre(par,ini,ss,path,ncols=1):
                 
         # back out prices option 3 - inflation is just relative to steady state
         tau_pm[:]=0
-        tau_pm[0]=par.tax_rate_base*pm_N[0]
-        tau_pm[1]=par.tax_rate_base*pm_N[1]
+        tau_pm[2]=par.tax_rate_base*pm_N[2]
+        tau_pm[3]=par.tax_rate_base*pm_N[3]
         pm_f[:]=pm_N-tau_pm
         #if np.any(pm_N==0.01*ss.Q):
         #    tau_pm[2]=par.tax_rate_base*pm_N[2]
@@ -149,6 +150,9 @@ def block_pre(par,ini,ss,path,ncols=1):
         i_lag = lag(ini.i,i) #lag variable of nominal interest rate
         r[:] = (1+i_lag)/(1+pi)-1 ## Fix these taylor rule weights, Appendix A5, Central bank block, eq 4
         #r[:] = i-pi # fisher equation
+
+        #test
+        M_test[:] = (1 + (((M_N - ss.M_N) / ss.M_N) - ((pm_f - ss.pm_N) / ss.pm_N))) * ss.M_N
 
         # c. government
         B[:] = ss.B #a constant amount of bonds, SS value
@@ -224,6 +228,8 @@ def block_post(par,ini,ss,path,ncols=1):
         p_N = path.p_N[ncol,:]
         P_hh = path.P_hh[ncol,:]
         tau_pm = path.tau_pm[ncol,:]
+        pm_f = path.pm_f[ncol,:]
+        M_test = path.M_test[ncol,:]
 
         #################
         # check targets #
